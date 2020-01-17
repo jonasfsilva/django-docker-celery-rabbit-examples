@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+  rabbitmq:
+    hostname: rabbitmq
+    image: rabbitmq:3.7-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "jonas"
+      RABBITMQ_DEFAULT_PASS: "jonas2020"
+  transactions_service:
+    build: .
+    hostname: transactions_service
+    command: sh ./run_web.sh
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh ./run_celery.sh
+    volumes:
+      - .:/app
+    links:
+      - rabbitmq
+    depends_on:
+      - rabbitmq
+    environment:
+      BROKER_USER: "jonas"
+      BROKER_PASS: "jonas2020"
+      BROKER_HOST: "rabbitmq"
+      BROKER_PORT: 5672
